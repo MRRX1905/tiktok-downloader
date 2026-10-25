@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTSave - TikTok Downloader Tanpa Watermark</title>
+<style>
+  :root {
+    --bg1: #0f0c29;
+    --bg2: #1a1a2e;
+    --card: rgba(255,255,255,.05);
+    --border: rgba(255,255,255,.1);
+    --pink: #fe2c55;
+    --cyan: #25f4ee;
+    --text: #f1f1f1;
+    --muted: #9ca3af;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px;
+  }
+  h1 {
+    font-size: 2rem;
+    background: linear-gradient(90deg, var(--pink), var(--cyan));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 8px;
+  }
+  .subtitle { color: var(--muted); margin-bottom: 32px; text-align:center; }
+  .box {
+    width: 100%;
+    max-width: 640px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(12px);
+  }
+  .input-row { display: flex; gap: 10px; }
+  input[type="url"] {
+    flex: 1;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,.3);
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type="url"]:focus { border-color: var(--pink); }
+  button.primary {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(90deg, var(--pink), #ff0050);
+    color: #fff;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    white-space: nowrap;
+  }
+  button.primary:hover { opacity: .9; }
+  button.primary:active { transform: scale(.97); }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; }
+  .msg { margin-top: 14px; padding: 12px; border-radius: 10px; font-size: 14px; display:none; }
+  .msg.error { display:block; background: rgba(254,44,85,.12); border: 1px solid rgba(254,44,85,.4); color: #ff8ba0; }
+  .msg.info { display:block; background: rgba(37,244,238,.08); border: 1px solid rgba(37,244,238,.3); color: #7ef3ee; }
+  #result { display:none; margin-top: 24px; }
+  .video-card {
+    display: flex;
+    gap: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    align-items: flex-start;
+  }
+  .thumb-wrap { position: relative; flex-shrink: 0; }
+  .thumb-wrap img {
+    width: 130px; height: 180px;
+    object-fit: cover;
+    border-radius: 12px;
+    background: #222;
+  }
+  .play-icon {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    color: rgba(255,255,255,.85);
+    text-shadow: 0 2px 8px rgba(0,0,0,.6);
+    pointer-events: none;
+  }
+  .meta { flex: 1; min-width: 0; }
+  .meta h3 {
+    font-size: 15px;
+    line-height: 1.4;
+    max-height: 4.2em;
+    overflow: hidden;
+    margin-bottom: 10px;
+    word-break: break-word;
+  }
+  .author-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .author-row img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+  .author-row span { font-size: 13px; color: var(--muted); }
+  .stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat { font-size: 12px; color: var(--muted); }
+  .stat b { color: var(--text); font-size: 13px; }
+  .actions { display: flex; flex-direction: column; gap: 8px; }
+  .dl-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .2s;
+  }
+  .dl-btn:hover { background: rgba(255,255,255,.12); }
+  .dl-btn.hot { background: linear-gradient(90deg, var(--pink), #ff0050); border: none; }
+  .dl-btn.cyan { background: linear-gradient(90deg, #00b8d4, var(--cyan)); border: none; color: #003; }
+  .spinner {
+    display: none;
+    width: 28px; height: 28px;
+    border: 3px solid var(--border);
+    border-top-color: var(--pink);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 20px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .footer { margin-top: 40px; color: var(--muted); font-size: 12px; text-align: center; }
+  .images-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .images-grid img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; }
+  @media (max-width: 520px) {
+    .video-card { flex-direction: column; }
+    .thumb-wrap img { width: 100%; height: 220px; }
+    .input-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+  <h1>TTSave</h1>
+  <p class="subtitle">Downloader TikTok tanpa watermark &mdash; HD 1080p, MP3, &amp; slideshow</p>
+
+  <div class="box">
+    <form id="form">
+      <div class="input-row">
+        <input type="url" id="urlInput" placeholder="Tempel link TikTok di sini..." required autocomplete="off">
+        <button type="button" id="pasteBtn" class="primary" style="background:rgba(255,255,255,.08);">Tempel</button>
+        <button type="submit" class="primary" id="submitBtn">Unduh</button>
+      </div>
+    </form>
+    <div class="spinner" id="spinner"></div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div id="result">
+    <div class="video-card">
+      <div class="thumb-wrap">
+        <img id="cover" src="" alt="cover">
+        <div class="play-icon">&#9654;</div>
+      </div>
+      <div class="meta">
+        <h3 id="title"></h3>
+        <div class="author-row">
+          <img id="avatar" src="" alt="avatar">
+          <span id="authorName"></span>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="actions">
+          <a class="dl-btn hot" id="dlNoWm" href="#" target="_blank" rel="noopener">&#11015; Unduh Video (Tanpa Watermark)</a>
+          <a class="dl-btn" id="dlWm" href="#" target="_blank" rel="noopener" style="display:none;">Unduh Video (Dengan Watermark)</a>
+          <a class="dl-btn cyan" id="dlMp3" href="#" target="_blank" rel="noopener">&#9835; Unduh MP3</a>
+        </div>
+        <div class="images-grid" id="imagesGrid" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="footer">Menggunakan API publik snaptik.fi &middot; Hanya untuk penggunaan pribadi</p>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const form = $("form"), urlInput = $("urlInput"), submitBtn = $("submitBtn"),
+      spinner = $("spinner"), msg = $("msg"), result = $("result");
+
+function showMsg(text, type) {
+  msg.textContent = text;
+  msg.className = "msg " + type;
+}
+function hideMsg() { msg.className = "msg"; }
+
+function fmt(n) {
+  if (n == null) return "-";
+  if (n >= 1e6) return (n/1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n/1e3).toFixed(1) + "K";
+  return String(n);
+}
+function fmtDur(s) {
+  if (!s) return "0:00";
+  const m = Math.floor(s/60), sec = s%60;
+  return m + ":" + String(sec).padStart(2, "0");
+}
+function safeName(title, ext) {
+  const base = (title || "tiktok").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 60) || "tiktok";
+  return base + "." + ext;
+}
+function fileUrl(direct, name) {
+  return "/api/file?url=" + encodeURIComponent(direct) + "&name=" + encodeURIComponent(name);
+}
+
+$("pasteBtn").addEventListener("click", async () => {
+  try {
+    urlInput.value = await navigator.clipboard.readText();
+    urlInput.focus();
+  } catch {
+    showMsg("Clipboard tidak dapat diakses. Tempel manual (Ctrl+V).", "error");
+  }
+});
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hideMsg();
+  result.style.display = "none";
+  submitBtn.disabled = true;
+  spinner.style.display = "block";
+
+  try {
+    const res = await fetch("/api/parse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: urlInput.value.trim() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Terjadi kesalahan.");
+    render(data);
+  } catch (err) {
+    showMsg(err.message, "error");
+  } finally {
+    submitBtn.disabled = false;
+    spinner.style.display = "none";
+  }
+});
+
+function render(d) {
+  $("cover").src = d.cover || "";
+  $("title").textContent = d.title || "(tanpa judul)";
+  $("avatar").src = d.author.avatar || "";
+  $("avatar").style.display = d.author.avatar ? "" : "none";
+  $("authorName").textContent = d.author.uniqueId ? "@" + d.author.uniqueId + " \u00b7 " + (d.author.nickname || "") : (d.author.nickname || "");
+
+  const stats = $("stats");
+  stats.innerHTML = "";
+  const items = [
+    ["Durasi", fmtDur(d.duration)],
+    ["Views", fmt(d.statistics.play)],
+    ["Likes", fmt(d.statistics.like)],
+    ["Komentar", fmt(d.statistics.comment)],
+    ["Share", fmt(d.statistics.share)],
+  ];
+  for (const [label, val] of items) {
+    const el = document.createElement("div");
+    el.className = "stat";
+    el.innerHTML = label + "<br><b>" + val + "</b>";
+    stats.appendChild(el);
+  }
+
+  const noWm = $("dlNoWm"), wm = $("dlWm"), mp3 = $("dlMp3");
+  if (d.links.no_watermark) {
+    noWm.href = fileUrl(d.links.no_watermark, safeName(d.title, "mp4"));
+    noWm.style.display = "";
+  } else {
+    noWm.style.display = "none";
+  }
+  if (d.links.watermark) {
+    wm.href = fileUrl(d.links.watermark, safeName(d.title + "_wm", "mp4"));
+    wm.style.display = "";
+  } else {
+    wm.style.display = "none";
+  }
+  if (d.links.mp3) {
+    mp3.href = fileUrl(d.links.mp3, safeName(d.title, "mp3"));
+    mp3.style.display = "";
+  } else {
+    mp3.style.display = "none";
+  }
+
+  const grid = $("imagesGrid");
+  if (d.images && d.images.length) {
+    grid.innerHTML = "";
+    d.images.forEach((src, i) => {
+      const img = document.createElement("img");
+      img.src = typeof src === "string" ? src : (src.url || src.src || "");
+      img.alt = "foto " + (i + 1);
+      grid.appendChild(img);
+    });
+    grid.style.display = "";
+  } else {
+    grid.style.display = "none";
+  }
+
+  result.style.display = "block";
+}
+</script>
+</body>
+</html>
